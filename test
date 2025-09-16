@@ -1,4 +1,6 @@
-import os
+import bascenev1
+bascenev1.chatmessage('c')
+"""import os
 import json
 import http.client
 
@@ -53,3 +55,4 @@ for i, chunk in enumerate(chunks):
     response.read()  # Consume response to free connection
 
 conn.close()
+"""
